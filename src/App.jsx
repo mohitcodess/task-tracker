@@ -3,6 +3,7 @@ import './App.css'
 import { useEffect, useReducer, useState } from 'react'
 import Filter from './Components/Filter'
 
+
 function App() {
   const [newTask , setNewTask] = useState("")
   const [isAddModalOpen,setIsAddModalOpen] = useState(false);
@@ -10,7 +11,15 @@ function App() {
   const [selectedFilter, setSelectedFilter] = useState("All")
   const [tasksOnFilter,setTasksOnFilter] = useState([]);
   const filterCategories = ["All","Completed","Pending"];
-  
+  function findTasksByIndex(index,tasks){
+    for(let task of tasks){
+      
+      if(task.index==index){
+        return task;
+      }
+    }
+    return null;
+  }
   function tasksReducer (state,action){
     switch (action.type){
       case 'ADD':
@@ -20,21 +29,39 @@ function App() {
           ...state,
           {
             title:action.title,
-            isCompleted:false
+            isCompleted:false,
+            index:state.length
           }
         ]
         localStorage.setItem("tasks",JSON.stringify({'allTasks':[...updatedState]}));
         return updatedState 
         
-      case 'COMPLETED':
-        // Logic to mark as done
-        break;
+      case 'SET_COMPLETE':
+        var task = findTasksByIndex(action.index,state);
+        if(!task) return [...state];
+        var removedSelectedTaskArray = state.filter(t=>t!=task)
+        console.log(removedSelectedTaskArray)
+        var updatedTasksArray=[...removedSelectedTaskArray,{...task,isCompleted:true}] 
+        localStorage.setItem('tasks',JSON.stringify({
+          allTasks:updatedTasksArray
+        }))
+        return updatedTasksArray
+      case 'SET_INCOMPLETE':
+        task = findTasksByIndex(action.index,state);
+        if(!task) return [...state];
+        removedSelectedTaskArray = state.filter(t=>t!=task)
+        console.log(removedSelectedTaskArray)
+        updatedTasksArray=[...removedSelectedTaskArray,{...task,isCompleted:false}] 
+        localStorage.setItem('tasks',JSON.stringify({
+          allTasks:updatedTasksArray
+        }))
+        return updatedTasksArray
       case 'DELETE':
         // Logic to Delete
         break
       case 'SET':
         return action.allTasks.map((t,index)=>{
-          t.id=index;
+          index;
           return t;
         });
         
@@ -74,6 +101,7 @@ function App() {
     
   },[]) 
 
+
   useEffect(()=>{
     if(selectedFilter==='All') setTasksOnFilter([...tasks]);
     else if (selectedFilter==='Completed') setTasksOnFilter(tasks.filter(t=>t.isCompleted));
@@ -81,6 +109,7 @@ function App() {
     else setTasksOnFilter(tasks.filter(t=>!t.isCompleted));
 
   },[selectedFilter,tasks]  )
+
   return (
     <div className={`h-screen bg-black flex flex-col md:flex-row md:p-8 md:justify-around text-primary-light ` }>
       {/* heading */}
@@ -91,7 +120,7 @@ function App() {
         <div className="flex gap-4 md:mt-4   p-4">
           {filterCategories.map(category=><Filter title={category} tasks={tasksOnFilter} isSelected={selectedFilter===category} onClick={()=>{setSelectedFilter(category)}}/>)}
         </div>
-        <Tasks tasks={tasksOnFilter} />
+        <Tasks tasks={tasksOnFilter} dispatch={dispatch} />
         </div>}
 
        
