@@ -7,6 +7,10 @@ function App() {
   const [newTask , setNewTask] = useState("")
   const [isAddModalOpen,setIsAddModalOpen] = useState(false);
   const [tasks,dispatch] = useReducer(tasksReducer , []);
+  const [selectedFilter, setSelectedFilter] = useState("All")
+  const [tasksOnFilter,setTasksOnFilter] = useState([]);
+  const filterCategories = ["All","Completed","Pending"];
+  
   function tasksReducer (state,action){
     switch (action.type){
       case 'ADD':
@@ -15,7 +19,8 @@ function App() {
         const updatedState =[
           ...state,
           {
-            title:action.title
+            title:action.title,
+            isCompleted:false
           }
         ]
         localStorage.setItem("tasks",JSON.stringify({'allTasks':[...updatedState]}));
@@ -28,7 +33,10 @@ function App() {
         // Logic to Delete
         break
       case 'SET':
-        return [...action.allTasks];
+        return action.allTasks.map((t,index)=>{
+          t.id=index;
+          return t;
+        });
         
       default:
         //default state
@@ -57,13 +65,22 @@ function App() {
       }));
       return;
     }
-    console.log((localStorage.getItem("tasks")));
+    const allTasks =JSON.parse(localStorage.getItem("tasks")).allTasks;
     dispatch({
       type:'SET',
-      allTasks:JSON.parse(localStorage.getItem("tasks")).allTasks
+      allTasks
     })
+    setTasksOnFilter([...allTasks]);
     
-  },[])
+  },[]) 
+
+  useEffect(()=>{
+    if(selectedFilter==='All') setTasksOnFilter([...tasks]);
+    else if (selectedFilter==='Completed') setTasksOnFilter(tasks.filter(t=>t.isCompleted));
+    //set for pending state 
+    else setTasksOnFilter(tasks.filter(t=>!t.isCompleted));
+
+  },[selectedFilter,tasks]  )
   return (
     <div className={`h-screen bg-black flex flex-col md:flex-row md:p-8 md:justify-around text-primary-light ` }>
       {/* heading */}
@@ -72,11 +89,9 @@ function App() {
       {!isAddModalOpen  && <div className=" md:relative">
 
         <div className="flex gap-4 md:mt-4   p-4">
-          <Filter title="All" isSelected={true}/>
-          <Filter title="Completed" isSelected={false}/>
-          <Filter  title="Pending" isSelected={false}/>
+          {filterCategories.map(category=><Filter title={category} tasks={tasksOnFilter} isSelected={selectedFilter===category} onClick={()=>{setSelectedFilter(category)}}/>)}
         </div>
-        <Tasks tasks={tasks}/>
+        <Tasks tasks={tasksOnFilter} />
         </div>}
 
        
